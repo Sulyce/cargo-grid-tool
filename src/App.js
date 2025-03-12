@@ -51,7 +51,7 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   );
 };
 
-const GridCell = ({ x, y, moveContainer, isOccupied, containerSize }) => {
+const GridCell = ({ x, y, moveContainer, isOccupied, containerSize, draggingItem }) => {
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: "CONTAINER",
     drop: (item) => ({ position: { x, y } }),
@@ -71,14 +71,18 @@ const GridCell = ({ x, y, moveContainer, isOccupied, containerSize }) => {
     },
   }));
 
+  const isHighlighting = draggingItem &&
+    x >= draggingItem.position.x && x < draggingItem.position.x + draggingItem.width &&
+    y >= draggingItem.position.y && y < draggingItem.position.y + draggingItem.height;
+
   return (
     <div
       ref={drop}
       style={{
-        width: containerSize ? containerSize.width * 40 : 40,
-        height: containerSize ? containerSize.height * 40 : 40,
+        width: 40,
+        height: 40,
         border: "1px solid gray",
-        backgroundColor: isOver && canDrop ? "lightgreen" : isOver && !canDrop ? "red" : "transparent",
+        backgroundColor: isHighlighting ? "rgba(0, 255, 0, 0.5)" : isOver && canDrop ? "lightgreen" : isOver && !canDrop ? "red" : "transparent",
       }}
     ></div>
   );
@@ -87,6 +91,7 @@ const GridCell = ({ x, y, moveContainer, isOccupied, containerSize }) => {
 const ContainerGrid = () => {
   const [selectedShip, setSelectedShip] = useState("RSI Zeus CL");
   const [containerItems, setContainerItems] = useState([]);
+  const [draggingItem, setDraggingItem] = useState(null);
 
   const isSpaceOccupied = (x, y) => {
     return containerItems.some((c) =>
@@ -136,7 +141,7 @@ const ContainerGrid = () => {
           }}>
             {[...Array(SHIPS[selectedShip].gridSize)].map((_, row) =>
               [...Array(SHIPS[selectedShip].gridSize)].map((_, col) => (
-                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} isOccupied={isSpaceOccupied} containerSize={{ width: 40, height: 40 }} />
+                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} isOccupied={isSpaceOccupied} containerSize={{ width: 40, height: 40 }} draggingItem={draggingItem} />
               ))
             )}
             {containerItems.map((item, index) => (
