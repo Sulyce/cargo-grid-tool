@@ -22,12 +22,6 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "CONTAINER",
     item: { container, position },
-    end: (item, monitor) => {
-      const dropResult = monitor.getDropResult();
-      if (dropResult) {
-        moveContainer(item, dropResult.position);
-      }
-    },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -51,14 +45,26 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   );
 };
 
-const GridCell = ({ x, y, moveContainer }) => {
-  const [, drop] = useDrop(() => ({
+const GridCell = ({ x, y, moveContainer, occupied }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
     accept: "CONTAINER",
-    drop: () => ({ position: { x, y } }),
+    drop: (item) => moveContainer(item, { x, y }),
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+    canDrop: () => !occupied,
   }));
 
   return (
-    <div ref={drop} style={{ width: 40, height: 40, border: "1px solid gray" }}></div>
+    <div
+      ref={drop}
+      style={{
+        width: 40,
+        height: 40,
+        border: "1px solid gray",
+        backgroundColor: isOver && !occupied ? "lightgreen" : occupied ? "red" : "transparent",
+      }}
+    ></div>
   );
 };
 
@@ -67,11 +73,13 @@ const ContainerGrid = () => {
   const [containerItems, setContainerItems] = useState([]);
 
   const moveContainer = (item, newPosition) => {
-    setContainerItems((prev) =>
-      prev.map((container) =>
-        container === item ? { ...container, position: newPosition } : container
-      )
-    );
+    if (!containerItems.some((c) => c.position.x === newPosition.x && c.position.y === newPosition.y)) {
+      setContainerItems((prev) =>
+        prev.map((container) =>
+          container === item ? { ...container, position: newPosition } : container
+        )
+      );
+    }
   };
 
   const addContainer = (container) => {
@@ -114,7 +122,13 @@ const ContainerGrid = () => {
           <div style={{ position: "relative", width: gridSize * 40, height: gridSize * 40, display: "grid", gridTemplateColumns: `repeat(${gridSize}, 40px)`, gridTemplateRows: `repeat(${gridSize}, 40px)`, border: "2px solid black" }}>
             {[...Array(gridSize)].map((_, row) =>
               [...Array(gridSize)].map((_, col) => (
-                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} />
+                <GridCell
+                  key={`${row}-${col}`}
+                  x={col}
+                  y={row}
+                  moveContainer={moveContainer}
+                  occupied={containerItems.some((c) => c.position.x === col && c.position.y === row)}
+                />
               ))
             )}
             {containerItems.map((item, index) => (
