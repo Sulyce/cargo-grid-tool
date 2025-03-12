@@ -23,9 +23,14 @@ const CargoItem = ({ cargo, position, moveCargo }) => {
     }),
   }));
 
+  const [, drop] = useDrop(() => ({
+    accept: "CARGO",
+    drop: (item) => moveCargo(item, position)
+  }));
+
   return (
     <div
-      ref={drag}
+      ref={(node) => { drag(node); drop(node); }}
       style={{
         width: `${cargo.width * 40}px`,
         height: `${cargo.height * 40}px`,
