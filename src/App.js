@@ -22,6 +22,12 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "CONTAINER",
     item: { container, position },
+    end: (item, monitor) => {
+      const dropResult = monitor.getDropResult();
+      if (dropResult) {
+        moveContainer(item, dropResult.position);
+      }
+    },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -45,14 +51,14 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   );
 };
 
-const GridCell = ({ x, y, moveContainer, occupied }) => {
+const GridCell = ({ x, y, moveContainer, isOccupied }) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "CONTAINER",
     drop: (item) => moveContainer(item, { x, y }),
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
     }),
-    canDrop: () => !occupied,
+    canDrop: () => !isOccupied,
   }));
 
   return (
@@ -62,7 +68,7 @@ const GridCell = ({ x, y, moveContainer, occupied }) => {
         width: 40,
         height: 40,
         border: "1px solid gray",
-        backgroundColor: isOver && !occupied ? "lightgreen" : occupied ? "red" : "transparent",
+        backgroundColor: isOver && !isOccupied ? "lightgreen" : isOccupied ? "red" : "transparent",
       }}
     ></div>
   );
@@ -72,8 +78,15 @@ const ContainerGrid = () => {
   const [selectedShip, setSelectedShip] = useState(Object.keys(SHIPS)[0]);
   const [containerItems, setContainerItems] = useState([]);
 
+  const isSpaceOccupied = (x, y, width, height) => {
+    return containerItems.some((c) =>
+      x < c.position.x + c.container.width && x + width > c.position.x &&
+      y < c.position.y + c.container.height && y + height > c.position.y
+    );
+  };
+
   const moveContainer = (item, newPosition) => {
-    if (!containerItems.some((c) => c.position.x === newPosition.x && c.position.y === newPosition.y)) {
+    if (!isSpaceOccupied(newPosition.x, newPosition.y, item.container.width, item.container.height)) {
       setContainerItems((prev) =>
         prev.map((container) =>
           container === item ? { ...container, position: newPosition } : container
@@ -83,7 +96,9 @@ const ContainerGrid = () => {
   };
 
   const addContainer = (container) => {
-    setContainerItems([...containerItems, { container, position: { x: 0, y: 0 } }]);
+    if (!isSpaceOccupied(0, 0, container.width, container.height)) {
+      setContainerItems([...containerItems, { container, position: { x: 0, y: 0 } }]);
+    }
   };
 
   const saveLayout = () => {
@@ -122,13 +137,7 @@ const ContainerGrid = () => {
           <div style={{ position: "relative", width: gridSize * 40, height: gridSize * 40, display: "grid", gridTemplateColumns: `repeat(${gridSize}, 40px)`, gridTemplateRows: `repeat(${gridSize}, 40px)`, border: "2px solid black" }}>
             {[...Array(gridSize)].map((_, row) =>
               [...Array(gridSize)].map((_, col) => (
-                <GridCell
-                  key={`${row}-${col}`}
-                  x={col}
-                  y={row}
-                  moveContainer={moveContainer}
-                  occupied={containerItems.some((c) => c.position.x === col && c.position.y === row)}
-                />
+                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} isOccupied={isSpaceOccupied(col, row, 1, 1)} />
               ))
             )}
             {containerItems.map((item, index) => (
