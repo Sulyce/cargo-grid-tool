@@ -51,7 +51,7 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   );
 };
 
-const GridCell = ({ x, y, moveContainer, isOccupied }) => {
+const GridCell = ({ x, y, moveContainer, isOccupied, containerSize }) => {
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: "CONTAINER",
     drop: (item) => ({ position: { x, y } }),
@@ -75,8 +75,8 @@ const GridCell = ({ x, y, moveContainer, isOccupied }) => {
     <div
       ref={drop}
       style={{
-        width: 40,
-        height: 40,
+        width: containerSize ? containerSize.width * 40 : 40,
+        height: containerSize ? containerSize.height * 40 : 40,
         border: "1px solid gray",
         backgroundColor: isOver && canDrop ? "lightgreen" : isOver && !canDrop ? "red" : "transparent",
       }}
@@ -88,15 +88,15 @@ const ContainerGrid = () => {
   const [selectedShip, setSelectedShip] = useState("RSI Zeus CL");
   const [containerItems, setContainerItems] = useState([]);
 
-  const isSpaceOccupied = (x, y, width, height) => {
+  const isSpaceOccupied = (x, y) => {
     return containerItems.some((c) =>
-      x < c.position.x + c.width && x + width > c.position.x &&
-      y < c.position.y + c.height && y + height > c.position.y
+      x >= c.position.x && x < c.position.x + c.width &&
+      y >= c.position.y && y < c.position.y + c.height
     );
   };
 
   const moveContainer = (item, newPosition) => {
-    if (!isSpaceOccupied(newPosition.x, newPosition.y, item.width, item.height)) {
+    if (!isSpaceOccupied(newPosition.x, newPosition.y)) {
       setContainerItems((prev) =>
         prev.map((c) => (c.id === item.id ? { ...c, position: newPosition } : c))
       );
@@ -104,18 +104,9 @@ const ContainerGrid = () => {
   };
 
   const addContainer = (container) => {
-    if (!isSpaceOccupied(0, 0, container.width, container.height)) {
+    if (!isSpaceOccupied(0, 0)) {
       setContainerItems([...containerItems, { ...container, position: { x: 0, y: 0 } }]);
     }
-  };
-
-  const saveLayout = () => {
-    localStorage.setItem(`containerLayout-${selectedShip}`, JSON.stringify(containerItems));
-  };
-
-  const loadLayout = () => {
-    const savedLayout = JSON.parse(localStorage.getItem(`containerLayout-${selectedShip}`));
-    if (savedLayout) setContainerItems(savedLayout);
   };
 
   return (
@@ -136,10 +127,6 @@ const ContainerGrid = () => {
               </button>
             ))}
           </div>
-          <div>
-            <button onClick={saveLayout}>Save Layout</button>
-            <button onClick={loadLayout}>Load Layout</button>
-          </div>
           <div style={{
             position: "relative",
             display: "grid",
@@ -149,7 +136,7 @@ const ContainerGrid = () => {
           }}>
             {[...Array(SHIPS[selectedShip].gridSize)].map((_, row) =>
               [...Array(SHIPS[selectedShip].gridSize)].map((_, col) => (
-                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} isOccupied={isSpaceOccupied} />
+                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} isOccupied={isSpaceOccupied} containerSize={{ width: 40, height: 40 }} />
               ))
             )}
             {containerItems.map((item, index) => (
