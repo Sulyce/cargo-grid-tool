@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
@@ -19,6 +19,7 @@ const CONTAINER_TYPES = [
 ];
 
 const ContainerItem = ({ container, position, moveContainer }) => {
+  const ref = useRef(null);
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: "CONTAINER",
     item: { id: container.id, width: container.width, height: container.height, position },
@@ -38,6 +39,7 @@ const ContainerItem = ({ container, position, moveContainer }) => {
       ref={(node) => {
         drag(node);
         preview(node);
+        ref.current = node;
       }}
       style={{
         width: `${container.width * 40}px`,
@@ -54,7 +56,7 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   );
 };
 
-const GridCell = ({ x, y, moveContainer, isOccupied }) => {
+const GridCell = ({ x, y, moveContainer, isOccupied, containerSize }) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "CONTAINER",
     drop: (item) => ({ position: { x, y } }),
@@ -68,8 +70,8 @@ const GridCell = ({ x, y, moveContainer, isOccupied }) => {
     <div
       ref={drop}
       style={{
-        width: 40,
-        height: 40,
+        width: containerSize ? containerSize.width * 40 : 40,
+        height: containerSize ? containerSize.height * 40 : 40,
         border: "1px solid gray",
         backgroundColor: isOver && !isOccupied ? "lightgreen" : isOccupied ? "red" : "transparent",
       }}
