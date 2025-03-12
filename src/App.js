@@ -22,19 +22,20 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "CONTAINER",
     item: { container, position },
+    end: (item, monitor) => {
+      const dropResult = monitor.getDropResult();
+      if (dropResult) {
+        moveContainer(item, dropResult.position);
+      }
+    },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
   }));
 
-  const [, drop] = useDrop(() => ({
-    accept: "CONTAINER",
-    drop: (item) => moveContainer(item, position)
-  }));
-
   return (
     <div
-      ref={(node) => { drag(node); drop(node); }}
+      ref={drag}
       style={{
         width: `${container.width * 40}px`,
         height: `${container.height * 40}px`,
@@ -53,7 +54,7 @@ const ContainerItem = ({ container, position, moveContainer }) => {
 const GridCell = ({ x, y, moveContainer }) => {
   const [, drop] = useDrop(() => ({
     accept: "CONTAINER",
-    drop: (item) => moveContainer(item, { x, y })
+    drop: () => ({ position: { x, y } }),
   }));
 
   return (
@@ -98,7 +99,6 @@ const ContainerGrid = () => {
           ))}
         </select>
         <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
-          {/* Container Options */}
           <div>
             <h3>Select Container</h3>
             {CONTAINER_TYPES.map((container) => (
@@ -111,8 +111,6 @@ const ContainerGrid = () => {
               <button onClick={loadLayout}>Load Layout</button>
             </div>
           </div>
-
-          {/* Grid Layout */}
           <div style={{ position: "relative", width: gridSize * 40, height: gridSize * 40, display: "grid", gridTemplateColumns: `repeat(${gridSize}, 40px)`, gridTemplateRows: `repeat(${gridSize}, 40px)`, border: "2px solid black" }}>
             {[...Array(gridSize)].map((_, row) =>
               [...Array(gridSize)].map((_, col) => (
