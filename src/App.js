@@ -21,7 +21,7 @@ const CONTAINER_TYPES = [
 const ContainerItem = ({ container, position, moveContainer }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "CONTAINER",
-    item: { container, position },
+    item: { id: container.id, width: container.width, height: container.height, position },
     end: (item, monitor) => {
       const dropResult = monitor.getDropResult();
       if (dropResult) {
@@ -54,7 +54,7 @@ const ContainerItem = ({ container, position, moveContainer }) => {
 const GridCell = ({ x, y, moveContainer, isOccupied }) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "CONTAINER",
-    drop: (item) => moveContainer(item, { x, y }),
+    drop: (item) => ({ position: { x, y } }),
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
     }),
@@ -80,16 +80,16 @@ const ContainerGrid = () => {
 
   const isSpaceOccupied = (x, y, width, height) => {
     return containerItems.some((c) =>
-      x < c.position.x + c.container.width && x + width > c.position.x &&
-      y < c.position.y + c.container.height && y + height > c.position.y
+      x < c.position.x + c.width && x + width > c.position.x &&
+      y < c.position.y + c.height && y + height > c.position.y
     );
   };
 
   const moveContainer = (item, newPosition) => {
-    if (!isSpaceOccupied(newPosition.x, newPosition.y, item.container.width, item.container.height)) {
+    if (!isSpaceOccupied(newPosition.x, newPosition.y, item.width, item.height)) {
       setContainerItems((prev) =>
-        prev.map((container) =>
-          container === item ? { ...container, position: newPosition } : container
+        prev.map((c) =>
+          c.id === item.id ? { ...c, position: newPosition } : c
         )
       );
     }
@@ -97,7 +97,7 @@ const ContainerGrid = () => {
 
   const addContainer = (container) => {
     if (!isSpaceOccupied(0, 0, container.width, container.height)) {
-      setContainerItems([...containerItems, { container, position: { x: 0, y: 0 } }]);
+      setContainerItems([...containerItems, { ...container, position: { x: 0, y: 0 } }]);
     }
   };
 
@@ -141,7 +141,7 @@ const ContainerGrid = () => {
               ))
             )}
             {containerItems.map((item, index) => (
-              <ContainerItem key={index} container={item.container} position={item.position} moveContainer={moveContainer} />
+              <ContainerItem key={index} container={item} position={item.position} moveContainer={moveContainer} />
             ))}
           </div>
         </div>
