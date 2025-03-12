@@ -8,33 +8,37 @@ const SHIPS = {
   "MISC Hull C": { gridSize: 20, capacity: 4608 }
 };
 
-const CARGO_TYPES = [
-  { id: "1x1", width: 1, height: 1, color: "blue" },
-  { id: "2x1", width: 2, height: 1, color: "red" },
-  { id: "2x2", width: 2, height: 2, color: "green" }
+const CONTAINER_TYPES = [
+  { id: "1 SCU", width: 1, height: 1, depth: 1, color: "blue" },
+  { id: "2 SCU", width: 2, height: 1, depth: 1, color: "red" },
+  { id: "4 SCU", width: 2, height: 2, depth: 1, color: "green" },
+  { id: "8 SCU", width: 2, height: 2, depth: 2, color: "yellow" },
+  { id: "16 SCU", width: 4, height: 2, depth: 2, color: "purple" },
+  { id: "24 SCU", width: 6, height: 2, depth: 2, color: "orange" },
+  { id: "32 SCU", width: 8, height: 2, depth: 2, color: "pink" }
 ];
 
-const CargoItem = ({ cargo, position, moveCargo }) => {
+const ContainerItem = ({ container, position, moveContainer }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
-    type: "CARGO",
-    item: { cargo, position },
+    type: "CONTAINER",
+    item: { container, position },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
   }));
 
   const [, drop] = useDrop(() => ({
-    accept: "CARGO",
-    drop: (item) => moveCargo(item, position)
+    accept: "CONTAINER",
+    drop: (item) => moveContainer(item, position)
   }));
 
   return (
     <div
       ref={(node) => { drag(node); drop(node); }}
       style={{
-        width: `${cargo.width * 40}px`,
-        height: `${cargo.height * 40}px`,
-        backgroundColor: cargo.color,
+        width: `${container.width * 40}px`,
+        height: `${container.height * 40}px`,
+        backgroundColor: container.color,
         opacity: isDragging ? 0.5 : 1,
         position: "absolute",
         top: `${position.y * 40}px`,
@@ -46,10 +50,10 @@ const CargoItem = ({ cargo, position, moveCargo }) => {
   );
 };
 
-const GridCell = ({ x, y, moveCargo }) => {
+const GridCell = ({ x, y, moveContainer }) => {
   const [, drop] = useDrop(() => ({
-    accept: "CARGO",
-    drop: (item) => moveCargo(item, { x, y })
+    accept: "CONTAINER",
+    drop: (item) => moveContainer(item, { x, y })
   }));
 
   return (
@@ -57,29 +61,29 @@ const GridCell = ({ x, y, moveCargo }) => {
   );
 };
 
-const CargoGrid = () => {
+const ContainerGrid = () => {
   const [selectedShip, setSelectedShip] = useState(Object.keys(SHIPS)[0]);
-  const [cargoItems, setCargoItems] = useState([]);
+  const [containerItems, setContainerItems] = useState([]);
 
-  const moveCargo = (item, newPosition) => {
-    setCargoItems((prev) =>
-      prev.map((cargo) =>
-        cargo === item ? { ...cargo, position: newPosition } : cargo
+  const moveContainer = (item, newPosition) => {
+    setContainerItems((prev) =>
+      prev.map((container) =>
+        container === item ? { ...container, position: newPosition } : container
       )
     );
   };
 
-  const addCargo = (cargo) => {
-    setCargoItems([...cargoItems, { cargo, position: { x: 0, y: 0 } }]);
+  const addContainer = (container) => {
+    setContainerItems([...containerItems, { container, position: { x: 0, y: 0 } }]);
   };
 
   const saveLayout = () => {
-    localStorage.setItem(`cargoLayout-${selectedShip}`, JSON.stringify(cargoItems));
+    localStorage.setItem(`containerLayout-${selectedShip}`, JSON.stringify(containerItems));
   };
 
   const loadLayout = () => {
-    const savedLayout = JSON.parse(localStorage.getItem(`cargoLayout-${selectedShip}`));
-    if (savedLayout) setCargoItems(savedLayout);
+    const savedLayout = JSON.parse(localStorage.getItem(`containerLayout-${selectedShip}`));
+    if (savedLayout) setContainerItems(savedLayout);
   };
 
   const gridSize = SHIPS[selectedShip].gridSize;
@@ -94,12 +98,12 @@ const CargoGrid = () => {
           ))}
         </select>
         <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
-          {/* Cargo Options */}
+          {/* Container Options */}
           <div>
-            <h3>Select Cargo</h3>
-            {CARGO_TYPES.map((cargo) => (
-              <button key={cargo.id} onClick={() => addCargo(cargo)}>
-                {cargo.id}
+            <h3>Select Container</h3>
+            {CONTAINER_TYPES.map((container) => (
+              <button key={container.id} onClick={() => addContainer(container)}>
+                {container.id}
               </button>
             ))}
             <div>
@@ -112,11 +116,11 @@ const CargoGrid = () => {
           <div style={{ position: "relative", width: gridSize * 40, height: gridSize * 40, display: "grid", gridTemplateColumns: `repeat(${gridSize}, 40px)`, gridTemplateRows: `repeat(${gridSize}, 40px)`, border: "2px solid black" }}>
             {[...Array(gridSize)].map((_, row) =>
               [...Array(gridSize)].map((_, col) => (
-                <GridCell key={`${row}-${col}`} x={col} y={row} moveCargo={moveCargo} />
+                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} />
               ))
             )}
-            {cargoItems.map((item, index) => (
-              <CargoItem key={index} cargo={item.cargo} position={item.position} moveCargo={moveCargo} />
+            {containerItems.map((item, index) => (
+              <ContainerItem key={index} container={item.container} position={item.position} moveContainer={moveContainer} />
             ))}
           </div>
         </div>
@@ -128,8 +132,8 @@ const CargoGrid = () => {
 export default function App() {
   return (
     <div>
-      <h1>Star Citizen Cargo Grid</h1>
-      <CargoGrid />
+      <h1>Star Citizen Container Grid</h1>
+      <ContainerGrid />
     </div>
   );
 }
