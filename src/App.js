@@ -51,7 +51,7 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   );
 };
 
-const GridCell = ({ x, y, moveContainer, isOccupied, containerSize, draggingItem }) => {
+const GridCell = ({ x, y, moveContainer, isOccupied, draggingItem }) => {
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: "CONTAINER",
     drop: (item) => ({ position: { x, y } }),
@@ -71,9 +71,12 @@ const GridCell = ({ x, y, moveContainer, isOccupied, containerSize, draggingItem
     },
   }));
 
-  const isHighlighting = draggingItem &&
-    x >= draggingItem.position.x && x < draggingItem.position.x + draggingItem.width &&
-    y >= draggingItem.position.y && y < draggingItem.position.y + draggingItem.height;
+  const isHighlighting =
+    draggingItem &&
+    x >= draggingItem.position.x &&
+    x < draggingItem.position.x + draggingItem.width &&
+    y >= draggingItem.position.y &&
+    y < draggingItem.position.y + draggingItem.height;
 
   return (
     <div
@@ -82,7 +85,12 @@ const GridCell = ({ x, y, moveContainer, isOccupied, containerSize, draggingItem
         width: 40,
         height: 40,
         border: "1px solid gray",
-        backgroundColor: isHighlighting ? "rgba(0, 255, 0, 0.5)" : isOver && canDrop ? "lightgreen" : isOver && !canDrop ? "red" : "transparent",
+        backgroundColor:
+          isHighlighting || (isOver && canDrop)
+            ? "rgba(0, 255, 0, 0.5)"
+            : isOver && !canDrop
+            ? "red"
+            : "transparent",
       }}
     ></div>
   );
@@ -94,9 +102,12 @@ const ContainerGrid = () => {
   const [draggingItem, setDraggingItem] = useState(null);
 
   const isSpaceOccupied = (x, y) => {
-    return containerItems.some((c) =>
-      x >= c.position.x && x < c.position.x + c.width &&
-      y >= c.position.y && y < c.position.y + c.height
+    return containerItems.some(
+      (c) =>
+        x >= c.position.x &&
+        x < c.position.x + c.width &&
+        y >= c.position.y &&
+        y < c.position.y + c.height
     );
   };
 
@@ -123,7 +134,9 @@ const ContainerGrid = () => {
             <option key={ship} value={ship}>{ship}</option>
           ))}
         </select>
-        <div style={{ display: "flex", gap: "20px", marginTop: "20px", flexDirection: "column" }}>
+        <div
+          style={{ display: "flex", gap: "20px", marginTop: "20px", flexDirection: "column" }}
+        >
           <div>
             <h3>Select Container</h3>
             {CONTAINER_TYPES.map((container) => (
@@ -132,20 +145,34 @@ const ContainerGrid = () => {
               </button>
             ))}
           </div>
-          <div style={{
-            position: "relative",
-            display: "grid",
-            gridTemplateColumns: `repeat(${SHIPS[selectedShip].gridSize}, 40px)`,
-            gridTemplateRows: `repeat(${SHIPS[selectedShip].gridSize}, 40px)`,
-            border: "2px solid black"
-          }}>
+          <div
+            style={{
+              position: "relative",
+              display: "grid",
+              gridTemplateColumns: `repeat(${SHIPS[selectedShip].gridSize}, 40px)`,
+              gridTemplateRows: `repeat(${SHIPS[selectedShip].gridSize}, 40px)`,
+              border: "2px solid black",
+            }}
+          >
             {[...Array(SHIPS[selectedShip].gridSize)].map((_, row) =>
               [...Array(SHIPS[selectedShip].gridSize)].map((_, col) => (
-                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} isOccupied={isSpaceOccupied} containerSize={{ width: 40, height: 40 }} draggingItem={draggingItem} />
+                <GridCell
+                  key={`${row}-${col}`}
+                  x={col}
+                  y={row}
+                  moveContainer={moveContainer}
+                  isOccupied={isSpaceOccupied}
+                  draggingItem={draggingItem}
+                />
               ))
             )}
             {containerItems.map((item, index) => (
-              <ContainerItem key={index} container={item} position={item.position} moveContainer={moveContainer} />
+              <ContainerItem
+                key={index}
+                container={item}
+                position={item.position}
+                moveContainer={moveContainer}
+              />
             ))}
           </div>
         </div>
