@@ -19,7 +19,7 @@ const CONTAINER_TYPES = [
 ];
 
 const ContainerItem = ({ container, position, moveContainer }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: "CONTAINER",
     item: { id: container.id, width: container.width, height: container.height, position },
     end: (item, monitor) => {
@@ -35,7 +35,10 @@ const ContainerItem = ({ container, position, moveContainer }) => {
 
   return (
     <div
-      ref={drag}
+      ref={(node) => {
+        drag(node);
+        preview(node);
+      }}
       style={{
         width: `${container.width * 40}px`,
         height: `${container.height * 40}px`,
