@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
@@ -19,8 +19,7 @@ const CONTAINER_TYPES = [
 ];
 
 const ContainerItem = ({ container, position, moveContainer }) => {
-  const ref = useRef(null);
-  const [{ isDragging }, drag, preview] = useDrag(() => ({
+  const [{ isDragging }, drag] = useDrag(() => ({
     type: "CONTAINER",
     item: { id: container.id, width: container.width, height: container.height, position },
     end: (item, monitor) => {
@@ -36,11 +35,7 @@ const ContainerItem = ({ container, position, moveContainer }) => {
 
   return (
     <div
-      ref={(node) => {
-        drag(node);
-        preview(node);
-        ref.current = node;
-      }}
+      ref={drag}
       style={{
         width: `${container.width * 40}px`,
         height: `${container.height * 40}px`,
@@ -56,52 +51,79 @@ const ContainerItem = ({ container, position, moveContainer }) => {
   );
 };
 
-const GridCell = ({ x, y, moveContainer, isOccupied, containerSize }) => {
-  const [{ isOver }, drop] = useDrop(() => ({
+const GridCell = ({ x, y, moveContainer, isOccupied, draggingContainer }) => {
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: "CONTAINER",
     drop: (item) => ({ position: { x, y } }),
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
+      canDrop: monitor.canDrop(),
     }),
-    canDrop: () => !isOccupied,
+    canDrop: (item) => {
+      for (let dx = 0; dx < item.width; dx++) {
+        for (let dy = 0; dy < item.height; dy++) {
+          if (isOccupied(x + dx, y + dy)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
   }));
 
   return (
     <div
       ref={drop}
       style={{
-        width: containerSize ? containerSize.width * 40 : 40,
-        height: containerSize ? containerSize.height * 40 : 40,
+        width: 40,
+        height: 40,
         border: "1px solid gray",
-        backgroundColor: isOver && !isOccupied ? "lightgreen" : isOccupied ? "red" : "transparent",
+        backgroundColor: isOver && canDrop ? "lightgreen" : isOver && !canDrop ? "red" : "transparent",
+        position: "relative",
       }}
-    ></div>
+    >
+      {draggingContainer && draggingContainer.id &&
+        x >= draggingContainer.position.x &&
+        x < draggingContainer.position.x + draggingContainer.width &&
+        y >= draggingContainer.position.y &&
+        y < draggingContainer.position.y + draggingContainer.height && (
+          <div
+            style={{
+              width: draggingContainer.width * 40,
+              height: draggingContainer.height * 40,
+              backgroundColor: "rgba(0, 255, 0, 0.3)",
+              position: "absolute",
+              top: 0,
+              left: 0,
+            }}
+          ></div>
+        )}
+    </div>
   );
 };
 
 const ContainerGrid = () => {
   const [selectedShip, setSelectedShip] = useState(Object.keys(SHIPS)[0]);
   const [containerItems, setContainerItems] = useState([]);
+  const [draggingContainer, setDraggingContainer] = useState(null);
 
-  const isSpaceOccupied = (x, y, width, height) => {
+  const isSpaceOccupied = (x, y) => {
     return containerItems.some((c) =>
-      x < c.position.x + c.width && x + width > c.position.x &&
-      y < c.position.y + c.height && y + height > c.position.y
+      x >= c.position.x && x < c.position.x + c.width &&
+      y >= c.position.y && y < c.position.y + c.height
     );
   };
 
   const moveContainer = (item, newPosition) => {
-    if (!isSpaceOccupied(newPosition.x, newPosition.y, item.width, item.height)) {
+    if (!isSpaceOccupied(newPosition.x, newPosition.y)) {
       setContainerItems((prev) =>
-        prev.map((c) =>
-          c.id === item.id ? { ...c, position: newPosition } : c
-        )
+        prev.map((c) => (c.id === item.id ? { ...c, position: newPosition } : c))
       );
     }
   };
 
   const addContainer = (container) => {
-    if (!isSpaceOccupied(0, 0, container.width, container.height)) {
+    if (!isSpaceOccupied(0, 0)) {
       setContainerItems([...containerItems, { ...container, position: { x: 0, y: 0 } }]);
     }
   };
@@ -114,8 +136,6 @@ const ContainerGrid = () => {
     const savedLayout = JSON.parse(localStorage.getItem(`containerLayout-${selectedShip}`));
     if (savedLayout) setContainerItems(savedLayout);
   };
-
-  const gridSize = SHIPS[selectedShip].gridSize;
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -134,32 +154,19 @@ const ContainerGrid = () => {
                 {container.id}
               </button>
             ))}
-            <div>
-              <button onClick={saveLayout}>Save Layout</button>
-              <button onClick={loadLayout}>Load Layout</button>
-            </div>
+            <button onClick={saveLayout}>Save Layout</button>
+            <button onClick={loadLayout}>Load Layout</button>
           </div>
-          <div style={{ position: "relative", width: gridSize * 40, height: gridSize * 40, display: "grid", gridTemplateColumns: `repeat(${gridSize}, 40px)`, gridTemplateRows: `repeat(${gridSize}, 40px)`, border: "2px solid black" }}>
-            {[...Array(gridSize)].map((_, row) =>
-              [...Array(gridSize)].map((_, col) => (
-                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} isOccupied={isSpaceOccupied(col, row, 1, 1)} />
+          <div style={{ position: "relative", display: "grid", gridTemplateColumns: `repeat(10, 40px)`, gridTemplateRows: `repeat(10, 40px)`, border: "2px solid black" }}>
+            {[...Array(10)].map((_, row) =>
+              [...Array(10)].map((_, col) => (
+                <GridCell key={`${row}-${col}`} x={col} y={row} moveContainer={moveContainer} isOccupied={isSpaceOccupied} draggingContainer={draggingContainer} />
               ))
             )}
-            {containerItems.map((item, index) => (
-              <ContainerItem key={index} container={item} position={item.position} moveContainer={moveContainer} />
-            ))}
           </div>
         </div>
       </div>
     </DndProvider>
   );
 };
-
-export default function App() {
-  return (
-    <div>
-      <h1>Star Citizen Container Grid</h1>
-      <ContainerGrid />
-    </div>
-  );
-}
+export default ContainerGrid;
